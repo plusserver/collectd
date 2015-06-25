@@ -1,0 +1,257 @@
+<form script="custom_layout_width.js">
+  <label>CPU Load</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="multiselect" searchWhenChanged="true" token="envmultiselect">
+      <label>Select Environment:</label>
+      <default>*</default>
+      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
+<![CDATA[
+| metadata type=hosts `collectd_index` | search totalCount>0 
+| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
+| eval environment=mvindex(fields,2)
+| eval env=tostring(environment + "_" + stage)
+| eval envdata=tostring(stage + "." + environment)
+| dedup env
+| sort env 
+| regex env="^[^\d]"
+| table env envdata
+]]>
+	  </populatingSearch>
+      <choice value="*">all</choice>
+	  
+	  <prefix>(</prefix>
+      <valuePrefix>host ="*</valuePrefix>
+      <valueSuffix>*"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <suffix>)</suffix>
+    </input>
+	
+    <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
+      <label>Select Hosts: </label>
+      <default>*</default>
+      <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
+<![CDATA[
+	  | metadata type=hosts `collectd_index` |
+	  search $envmultiselect$ totalCount>0 | 
+	  dedup "host" | 
+	  sort "host" | 
+	  regex host="^[^\d]" |
+	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
+	  table host hostreplace
+]]>	  
+	  </populatingSearch>
+      <choice value="*">all</choice>
+	  
+	  <prefix>(</prefix>
+      <valuePrefix>host ="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <suffix>)</suffix>
+    </input>
+	
+    <input type="time" searchWhenChanged="true">
+      <label>Select Time:</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+<!--  
+<row>
+  <panel>
+  <html>
+  <p>debug</p>
+  <p><![CDATA[
+	  | metadata type=hosts `collectd_index` |
+	  search $envmultiselect$ totalCount>0 | 
+	  dedup "host" | 
+	  sort "host" | 
+	  regex host="^[^\d]" |
+	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
+	  table host hostreplace
+]]>	</p>
+  </html>
+  </panel>
+  </row>
+-->
+  <row>
+    <panel id="panel1_setWidth_67">
+      <chart>
+        <title>1 Minute load by Host</title>
+        <searchString>
+<![CDATA[		
+`collectd_index` $hostmultiselect$ $envmultiselect$ object=load metric="load.shortterm" | 
+
+timechart bins=200 avg(value) by host useother=no limit=15 | 
+
+]]>	
+		</searchString>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+      </chart>
+    </panel>
+    <panel id="panel1_setWidth_33">
+      <table>
+        <title>Load 1 Minute by Host</title>
+        <search>
+          <query>
+<![CDATA[	  
+`collectd_index` $hostmultiselect$ $envmultiselect$    object=load  metric="load.shortterm" |
+stats avg(value) as AvgLoad max(value) as MaxLoad by host |
+eval AvgLoad =round(AvgLoad ,2) |
+eval MaxLoad =round(MaxLoad ,2) |
+sort 10 -AvgLoad |
+
+table host AvgLoad MaxLoad
+]]>		  
+</query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel2_setWidth_67">
+      <chart>
+        <title>5 Minute load by Host</title>
+        <searchString>
+
+<![CDATA[		
+
+`collectd_index` $hostmultiselect$ $envmultiselect$    object=load metric="load.midterm"| 
+
+timechart bins=200 avg(value) by host useother=no limit=15
+
+]]>
+		</searchString>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+      </chart>
+    </panel>
+    <panel id="panel2_setWidth_33">
+      <table>
+        <title>Load 5 Minute by Host</title>
+        <search>
+          <query>
+<![CDATA[		  
+`collectd_index` $hostmultiselect$ $envmultiselect$    object=load  metric="load.midterm" |
+stats avg(value) as AvgLoad max(value) as MaxLoad by host |
+eval AvgLoad =round(AvgLoad ,2) |
+eval MaxLoad =round(MaxLoad ,2) |
+sort 10 -AvgLoad |
+
+table host AvgLoad MaxLoad
+]]>
+		  </query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="panel3_setWidth_67">
+      <chart>
+        <title>15 Minute load by Host</title>
+        <searchString>
+<![CDATA[	
+`collectd_index` $hostmultiselect$ $envmultiselect$    object=load  metric="load.longterm" | 
+
+timechart bins=200 avg(value) by host useother=no limit=15
+]]>		
+		</searchString>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+      </chart>
+    </panel>
+    <panel id="panel3_setWidth_33">
+      <table>
+        <title>Load 15 Minute by Host</title>
+        <search>
+          <query>
+<![CDATA[	  
+`collectd_index` $hostmultiselect$ $envmultiselect$   object=load  metric="load.longterm" |
+stats avg(value) as AvgLoad max(value) as MaxLoad by host |
+eval AvgLoad =round(AvgLoad ,2) |
+eval MaxLoad =round(MaxLoad ,2) |
+sort 10 -AvgLoad |
+
+table host AvgLoad MaxLoad
+]]>		  
+		  </query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+
+    </panel>
+  </row>
+</form>

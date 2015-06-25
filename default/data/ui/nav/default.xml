@@ -1,0 +1,16 @@
+<nav search_view="search" color="#65A637">
+  
+  <view name="load_metric" default='true'/>
+  <view name="cpu_metric" />
+  <view name="mem_metric" />
+  <collection label="Storage">
+    <view name="storage_metric"  />
+	<view name="storage_timeline_metric"  />
+	<view name="storage_performance"  />
+  </collection>
+  <view name="process_state_metric"  />
+  <view name="net_metric"  />
+  <view name="help"  />
+  
+  <view name="search" />
+</nav>

@@ -1,0 +1,44 @@
+[mask-collectd1]
+REGEX = ^([^_]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$1
+
+[mask-collectd2]
+REGEX = ^([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$2.$1
+
+[mask-collectd3]
+REGEX = ^([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$3.$2.$1
+
+[mask-collectd4]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$4.$3.$2.$1
+
+[mask-collectd5]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$5.$4.$3.$2.$1
+
+[mask-collectd6]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$6.$5.$4.$3.$2.$1
+
+[mask-collectd7]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$7.$6.$5.$4.$3.$2.$1
+
+[mask-collectd8]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$8.$7.$6.$5.$4.$3.$2.$1
+
+[mask-collectd9]
+REGEX = ^([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_]+)_([^_.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT =  host::$9.$8.$7.$6.$5.$4.$3.$2.$1

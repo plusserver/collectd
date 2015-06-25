@@ -1,0 +1,199 @@
+<form script="custom_layout_width.js">
+  <label>Network Throughput and Errors</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="multiselect" searchWhenChanged="true" token="envmultiselect">
+      <label>Select Environment:</label>
+      <default>*</default>
+      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
+<![CDATA[
+| metadata type=hosts `collectd_index` | search totalCount>0 
+| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
+| eval environment=mvindex(fields,2)
+| eval env=tostring(environment + "_" + stage)
+| eval envdata=tostring(stage + "." + environment)
+| dedup env
+| sort env 
+| regex env="^[^\d]"
+| table env envdata
+]]>
+	  </populatingSearch>
+      <choice value="*">all</choice>
+	  
+	  <prefix>(</prefix>
+      <valuePrefix>host ="*</valuePrefix>
+      <valueSuffix>*"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <suffix>)</suffix>
+    </input>
+
+    <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
+      <label>Select Hosts: </label>
+      <default>*</default>
+      <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
+<![CDATA[
+	  | metadata type=hosts `collectd_index` |
+	  search $envmultiselect$ totalCount>0 | 
+	  dedup "host" | 
+	  sort "host" | 
+	  regex host="^[^\d]" |
+	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
+	  table host hostreplace
+]]>	  
+	  </populatingSearch>
+      <choice value="*">all</choice>
+	  
+	  <prefix>(</prefix>
+      <valuePrefix>host ="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <suffix>)</suffix>
+    </input>
+	
+	<input type="dropdown" searchWhenChanged="true" token="object">
+      <label>Select Object</label>
+      <default>*</default>	   
+	  <choice value="*">all Interfaces</choice>
+      <populatingSearch fieldForLabel="object" fieldForValue="object">
+
+<![CDATA[	  
+`collectd_index` $hostmultiselect$ object=interface-* if_packets_rx>0 OR if_packets_tx>0 |
+dedup object | 
+sort object |
+table object
+]]>
+	  
+	 </populatingSearch>
+    </input>
+    
+	<input type="time" searchWhenChanged="true">
+      <label>Select Time:</label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  
+  <row>
+    <panel id="panel1_setWidth_67">
+      <chart>
+        <title>Packet throughput by host</title>
+<searchString>
+<![CDATA[
+`collectd_index` $hostmultiselect$ $envmultiselect$ metric="if_packets.*x"  | 
+transaction maxspan=5m _time | 
+eventstats sum(value) as Total by _cd | 
+timechart avg(Total) by host | 
+
+]]>
+</searchString>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">collapsed</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+      </chart>
+    </panel>
+    <panel id="panel1_setWidth_33">
+      <table>
+        <title>Packet per second by host</title>
+<searchString>
+<![CDATA[
+
+`collectd_index` $hostmultiselect$ $envmultiselect$ metric="if_packets.*x"  | 
+transaction maxspan=5m _time | 
+eventstats sum(value) as Total by _cd | 
+stats avg(Total) as avg by host | 
+sort -avg | 
+eval avg=round(avg,2) | 
+rename avg as p/s | 
+
+]]>
+</searchString>		
+
+<!--
+`collectd_index` $hostmultiselect$ if_packets_rx=* OR if_packets_tx=* | 
+bucket span=5m _time |
+stats avg(if_packets_tx) as tx avg(if_packets_rx) as rx by object host| 
+eval total = rx+tx | 
+search total>0.1 | 
+stats avg(total) as avg by host|
+sort -avg | 
+eval avg=round(avg,2) | 
+
+-->
+
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+	</row>
+	<row>
+	<panel>
+      <table>
+        <title>Packet per second by host interface</title>
+<searchString>
+<![CDATA[
+`collectd_index` $hostmultiselect$ $envmultiselect$ if_packets_rx=* OR if_packets_tx=* | bucket span=5m _time |
+stats avg(if_packets_tx) as tx avg(if_packets_rx) as rx by object host |
+eval total=tx+rx | 
+search total>0.1 | 
+sort -total |
+head 20 | 
+eval tx=round(tx,2) | 
+eval rx=round(rx,2) | 
+eval total=round(total,2) | 
+rename total as "total p/s" |
+table host, object, "total p/s", tx, rx | 
+
+]]>
+</searchString>		
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+
+ <!-- errors -->
+
+  <row>
+    <panel>
+      <table>
+        <title>Error sum by host and interface</title>
+<searchString>
+<![CDATA[
+`collectd_index` host=* metric="if_errors.*x" $hostmultiselect$ value>0 | 
+stats sum(value) as sum by host object
+]]>
+</searchString>		
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+	</row>
+
+  
+  
+</form>

@@ -1,0 +1,4 @@
+[mask-collectd]
+REGEX = ^([^\.]+)\..+\..+\s.+\s.+
+DEST_KEY = MetaData:Host
+FORMAT = host::$1

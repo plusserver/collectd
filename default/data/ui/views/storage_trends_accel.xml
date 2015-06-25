@@ -1,0 +1,299 @@
+<form>
+  <label>Storage Trends accel</label>
+  <fieldset submitButton="false" autoRun="true">
+   <input type="dropdown" searchWhenChanged="true" token="env">
+      <label>Select Environment:</label>
+      <default>*</default>
+      <populatingSearch earliest="$earliest$" latest="$latest$" fieldForLabel="env" fieldForValue="envdata">
+	  <![CDATA[
+| metadata type=hosts `collectd_index` | search totalCount>0 
+| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
+| eval environment=mvindex(fields,2)
+| eval env=tostring(environment + "_" + stage)
+| eval envdata=tostring(stage + "." + environment)
+| dedup env
+| sort env 
+| regex env="^[^\d]"
+| table env envdata
+	  ]]>
+	  </populatingSearch>
+      <choice value="*">all</choice>
+    </input>
+    <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
+      <label>Select Hosts:</label>
+      <default>*</default>
+      <populatingSearch fieldForLabel="host" fieldForValue="host">
+<![CDATA[
+  	  | metadata type=hosts `collectd_index` |
+	  search host="*$env$*" totalCount>0 | 
+	  dedup "host" | 
+	  sort "host" | 
+	  regex host="^[^\d]" |
+	  table "host"
+
+]]>
+	  
+	  </populatingSearch>
+      <choice value="*">all</choice>
+	  
+	  <prefix>(</prefix>
+      <valuePrefix>host ="</valuePrefix>
+      <valueSuffix>"</valueSuffix>
+      <delimiter> OR </delimiter>
+      <suffix>)</suffix>
+    </input>
+	
+	
+	<input type="dropdown" searchWhenChanged="true" token="partition">
+      <label>Select Partition</label>
+      <populatingSearch fieldForLabel="object_new" fieldForValue="object">
+<![CDATA[
+`collectd_index` object="df-*" (object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run")|
+ dedup "object" | 
+ eval object_new=replace(object,"df-","/") |
+ eval object_new=replace(object_new,"-","/") |
+ sort "object_new" | 
+ table "object_new" object
+]]>
+	  </populatingSearch>
+      <default>*</default>
+	  <choice value="*">all</choice>
+    </input>
+<!--(object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run") -->
+	
+    <input type="time" searchWhenChanged="true">
+      <label>Select Time: </label>
+      <default>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+
+  <row>
+    <panel>
+      <chart>
+	  <title>Storage increase by host in GB</title>
+        <search>
+          <query>
+<![CDATA[		  
+`collectd_index` (metric="df_complex-free" OR metric="df_complex-used" OR metric="df_complex-reserved") | 
+stats first(df_complex_free) as free last(df_complex_used) as lastused first(df_complex_used) as used first(df_complex_reserved) as reserved by host object |
+
+eval full=free+used | eval deltaused = used-lastused | 
+search $hostmultiselect$  host="*$env$*" | 
+stats sum(deltaused) as GB by host | 
+eval GB=round(GB/1024/1024/1024,2) | 
+
+sort -GB
+]]>		  
+		  </query>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">0</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+      <panel>
+      <table>
+        <title>Storage increase by host 
+ </title>
+        <search>
+          <query>
+<![CDATA[
+`collectd_index` (metric="df_complex-free" OR metric="df_complex-used" OR metric="df_complex-reserved") | 
+stats first(df_complex_free) as free last(df_complex_used) as lastused first(df_complex_used) as used first(df_complex_reserved) as reserved by host object |
+eval full=free+used+reserved | 
+eval deltaused = used-lastused | 
+stats sum(deltaused) as delta sum(full) as full sum(used) as used sum(free) as free by host  |
+
+search $hostmultiselect$  host="*$env$*" | 
+
+sort -delta |
+eval delta=`format_bytes_new(delta)` |
+eval full =`format_bytes_new(full )` | 
+rename full as size | 
+eval used =`format_bytes_new(used )` | 
+eval free=`format_bytes_new(free)` |  
+table host delta size used free
+]]>
+
+</query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">row</option>
+		<drilldown target="My New Window">
+		   <link>
+			  storage_timeline_metric?form.hostselected=$click.value$
+			</link>
+		</drilldown>
+		
+        <option name="count">10</option>
+      </table>
+    </panel>
+	</row>
+
+
+<row>	  
+      <panel>	  
+      <table>
+        <title>Storage changes by partition </title>
+        <search>
+          <query>
+		  
+<![CDATA[
+`collectd_index` (metric="df_complex-free" OR metric="df_complex-used" OR metric="df_complex-reserved") | 
+stats first(df_complex_free) as free last(df_complex_used) as lastused first(df_complex_used) as used first(df_complex_reserved) as reserved by host object |
+
+search $hostmultiselect$  host="*$env$*" object="$partition$"| 
+
+eval fullsize=free+used+reserved | 
+eval freeout=`format_bytes_new(free)` | 
+eval usedout=`format_bytes_new(used )` | 
+eval reservedout=`format_bytes_new(reserved)` | 
+eval fullout=`format_bytes_new(fullsize)` | 
+eval percentused = (used/fullsize)*100 |
+eval percentused = round(percentused) | 
+eval deltaused = used-lastused | 
+search deltaused!=0 | 
+rename fullout as size | 
+eval partition=replace(object,"df-","/") |
+eval partition=replace(partition,"-","/") |
+rename deltaused as delta |
+sort -delta |
+eval delta=`format_bytes_new(delta)` | 
+table host partition delta size usedout freeout percentused
+]]>
+		</query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+	</row>
+	
+	
+  <row>
+    <panel>
+      <chart>
+        <title>free vs. used by host in GB</title>
+        <search>
+          <query>
+<![CDATA[
+`collectd_index` (metric="df_complex-free" OR metric="df_complex-used" OR metric="df_complex-reserved") |  
+stats first(df_complex_free) as free last(df_complex_used) as lastused first(df_complex_used) as used first(df_complex_reserved) as reserved by host object |
+eval deltaused = used-lastused | 
+chart sum(used) as totalused sum(free) as totalfree sum(reserved) as totalreserved by host | 
+eval totalused=round(totalused/1024/1024/1024,2) | 
+eval totalfree=round(totalfree/1024/1024/1024,2) | 
+eval totalreserved=round(totalreserved/1024/1024/1024,2) | 
+]]>		  
+		  </query>
+          <earliest>-7d@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">visible</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">bar</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+        <option name="charting.chart.nullValueMode">gaps</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">right</option>
+      </chart>
+    </panel>
+  </row>
+
+	<row>
+	<panel>
+       <table>
+        <title>Avg Used Space host and partition</title>
+        <search>
+          <query>
+<![CDATA[	  
+`collectd_index` $hostmultiselect$ host="*$env$*" metric="df_complex-used" object="$partition$" |
+stats avg(value) AS bytes by host object |
+sort -bytes |
+eval UsedMem = `format_bytes_new(bytes)` |
+eval Partition=replace(object,"df-","/") |
+table host Partition UsedMem
+]]>
+</query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+
+	<panel>
+       <table>
+        <title>fullest volumes in pct</title>
+        <search>
+          <query>
+<![CDATA[	  
+`collectd_index` $hostmultiselect$ host="*$env$*"  object="df-*" (df_complex_free=* OR df_complex_used=* OR df_complex_reserved=*) object="$partition$"  |
+stats first(df_complex_free) as free first(df_complex_used) as used first(df_complex_reserved) as reserved by host object |
+eval full=free+used | 
+eval percentused = (used/full)*100 |
+sort -percentused |
+eval percentused = round(percentused) | 
+eval delta=`format_bytes_new(delta)` |
+eval full =`format_bytes_new(full )` | 
+eval used =`format_bytes_new(used )` | 
+eval free=`format_bytes_new(free)` |  
+eval partition=replace(object,"df-","/") |
+eval partition=replace(partition,"-","/") |
+table host partition percentused full used free
+]]>
+</query>
+        </search>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+</form>

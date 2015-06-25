@@ -1,0 +1,189 @@
+<dashboard showsource="false" script="prettify.js" >
+  <label>Help</label>
+  <row>
+    <panel>
+      <html>
+      <b>
+        <h2>collectd App for Splunk Enterprise by Nexinto</h2>
+      </b>
+      <br/>
+        
+        <h3>Overview</h3>
+
+      <br/>
+        
+      The "collectd App for Splunk Enterprise" analyzes your OS performance and storage data. 
+        <br/>
+Those statistics can then be used to find current performance bottlenecks and predict future system load. 
+It uses the collectd daemon and the graphite plugin to gather data from client machines. 
+      
+        
+      <br/>
+
+     <hr/>
+Features:
+        
+        <ul><li>Analyze System Load</li></ul>
+        <ul><li>Analyze CPU Usage (overall and per core)</li></ul>
+        <ul><li>Memory Usage (used, cached, buffered, swapped, free memory)</li></ul>
+		<ul><li>Storage Trending (in-/decrease per host and per partition)</li></ul>
+		<ul><li>Storage Timeline (Host and Partition usage over time)</li></ul>
+		<ul><li>Storage Performance (IOPs, Latency, Volume) by Host and Partition</li></ul>
+		<ul><li>Process State (running, sleeping, blocked and zombie processes) over time</li></ul>
+		<ul><li>Network Throughput and Errors (Packets/s) by Host and Interface</li></ul>        
+
+
+  <br/><br/>
+        
+	<h3>Installation</h3>
+        
+Deploy the “collectd App for Splunk Enterprise” like every other app by uploading the App using the WebGUI or extracting it to $SPLUNK_HOME$/etc/apps. 
+In a distributed environment the app has to be deployed to every Search head and Indexer. Besides collectd there is no additional Universal Forwarder 
+        installation needed on the client side. 
+    <br/>
+        
+With default settings the app will create an index "collectd"" and a TCP input on port 10001. You can customize these settings by changing the TCP port in inputs.conf.       
+        
+    <br/>    
+
+If you use multiple indexes or want to use a different than the "collectd"" index adjust the section "collectd_index" in macros.conf using the local directory.        
+        
+    <br/><br/>
+        macros.conf <br/>
+    <pre>
+	[collectd_index]
+	definition = index=MYCUSTOMINDEX 
+	iseval = 0
+	</pre>
+<br/><br/>        
+<h3>collectd Configuration for Linux</h3>   
+        
+Collectd has to be set up on every client machine. There is no universal forwarder needed on the client itself. Install collectd by using your distribution specific installer.        
+<br/><br/>
+<pre>
+	RedHat6/Centos6: yum install collectd-5.2.2-1.el6.en.x86_64
+	RedHat7/Centos7: yum install collectd-5.4.2-1.el7.x86_64
+	Debian/Ubuntu : apt-get install collectd -y
+</pre>        
+        
+<br/><br/>        
+You need to load the following plugins: cpu, df, disk, interface, load, memory, processes, swap and write_graphite. Here is an example file for /etc/collectd/collectd.conf.
+Make sure to adjust Host “1.2.3.4” to your Splunk Server providing the TCP input.
+<br/><br/>
+<pre>	Hostname "myclient.fqdn.com"
+	FQDNLookup false
+	Interval 300 				# how often should performance data be gathered (here: every 5 minutes)
+	LoadPlugin syslog
+	&lt;Plugin syslog&gt;
+			LogLevel info
+	&lt;/Plugin&gt;
+	LoadPlugin cpu 				# needed for CPU dashboard
+	LoadPlugin df 				# needed for storage dashboards
+	LoadPlugin disk 			# needed for IO dashboard
+	LoadPlugin interface 		# needed for Network throughput dashboard
+	LoadPlugin load 			# needed for CPU Load dashboard
+	LoadPlugin memory 			# needed for Memory dashboard 
+	LoadPlugin processes 		# needed for process state dashboard
+	LoadPlugin swap 			# needed for memory dashboard
+	LoadPlugin write_graphite 	# needed for writing data to TCP port
+	&lt;Plugin write_graphite&gt;
+	  &lt;Carbon&gt;
+		Host &quot;1.2.3.4&quot; 			# here goes the splunk indexer / tcp input
+		Port &quot;10001&quot;
+		Protocol &quot;tcp&quot;
+	  &lt;/Carbon&gt;
+	&lt;/Plugin&gt;
+</pre>
+        
+<br/>   
+<h3>Data Volume</h3>       
+<p>Collectd data is really compact. We measured about 3-6MB data usage per client – varies most on system parameters like partion count, size and memory.  
+  You will be able to monitor about 100 hosts with the free 500MB/d license. </p>
+<br/>
+        
+<h3>Client names and deployment modes</h3>       
+<p>By default the "collectd App for Splunk Enterprise" assumes that your reverse DNS is working correctly and will determine the hostnames this way. 
+If this does not work for your environment, you can extract the hostnames from the collectd event itself.  So there are 4 different deployment scenarios:</p>
+
+
+        <ul><li>Hostnames are determined from reverse DNS resolution: This is default behavior. No change needed.</li></ul>
+       <ul><li>Hostnames have to be determined from the event ifself: create a "local" dir and copy and rename props.conf.extracthostnames and transforms.conf.extracthostnames
+         to the local dir.</li>  </ul>
+
+  <ul><li>collectd hostnames are vice-versa FQDNs: If you are already using collectd and Graphite you just need to define another TCP source in collectd.conf. It's a quite
+typically configuration that you reverse your hostname in collectd.conf for displaying purpose (myclient.mydomain.com is written as Hostname "com.mydomain.myclient" in collectd.conf).
+If you using this configuration and you have to determine client names from the event instead of reverse DNS use examples\transforms.conf.extracthost-vice-versa. Here the hostname
+    is rewritten on the fly at indexing time.</li> </ul>
+<ul>  <li>use Universal Forwarder on the Client: If you want to use enhanced Forwarder Features features like encryption, load-balancing, traffic routing or buffering 
+  you could use Universal Forwarder on the client itself. Create a local TCP input on the client using a inputs.conf and adjust collectd.conf to log to localhost.
+     
+  </li>    </ul>
+        
+        inputs.conf: 
+<pre>
+[tcp://5000]
+connection_host = none
+host = myhost01.mydomain.com
+index = collectd
+source = collectd
+sourcetype = collectd
+</pre>  
+
+        <br/>
+        
+collectd.conf:
+<pre>        
+&lt;Plugin write_graphite&gt;
+  &lt;Carbon&gt;
+    Host &quot;127.0.0.1&quot;                    # log to the localhost
+    Port &quot;5000&quot;
+    Protocol &quot;tcp&quot;
+  &lt;/Carbon&gt;
+&lt;/Plugin&gt;        
+</pre>  
+
+<br/><br/>
+<h3>Dashboard documentation</h3>       
+
+<p>Navigation is the same for every dashboard. In default view every hosts will be shown. For fast comparison of multiple hosts you can use the Hosts dropdown. 
+The ""environment"" is the last value of the FQDN for the host, meaning “example1.com” for web.example1.com and “example2.com” for db.example2.com. 
+  This will help you when searching and comparing large amount of hosts.</p>
+
+        <ul><li>CPU Load: Displays average and max load of systems for the defined timeframe (default 24h)</li></ul>        
+        <ul><li>CPU Usage: Displays average and max cpu usage by host. By select Object you can drilldown to every system core</li></ul>
+        <ul><li>Memory: Average and max values for used, free, cached and swapped memory is displayed on host basis</li></ul>
+        <ul><li>Storage Trends: Storage increase by hosts in GB will show storage usage on a host in the defined timeframe. 
+		Notice that it will only display hosts and partition where a storage in-/decrease occurs. If you have a partition which is not changing for any kind of 
+		reason the Table Storage changes by partition will not display this partition.</li></ul>
+        <ul><li>Storage Timeline: the storage timeline will display a timechart for a host (default with all partitions) and a table displaying the usage on a per day basis. 
+		This will help you to see the sum of all usage and which partition is in-/decreasing most.</li></ul>
+        <ul><li>Process state: amount of concurrently running/sleeping/zombie processes and their ratio is displayed. </li></ul>
+        <ul><li>Network Throughput and Errors: Additionally to the host you are able to select a dedicated network interface on the host. 
+		If there are no errors for any interface on the hosts the last panel “error sum by host and interface” will be empty</li></ul>        
+
+<br/><hr/>
+<h3>Feedback</h3>             
+
+If you have Feedback, issues or questions please use issue tracker at Github page: http://github.com/blafasel . 
+For direct Feedback please contact: splunkapps@nexinto.com.  
+
+        <br/><br/>
+This app was created by:
+
+<br/> <br/>
+Nexinto GmbH<br/>
+Nagelsweg 33-35<br/>
+20097 Hamburg
+<br/><br/>
+Telefon: +49 40-77175-0<br/>
+Telefax: +49 40-77175-519
+<br/><br/>
+E-Mail: splunkapps@nexinto.com<br/>
+Internet: www.nexinto.com<br/>
+      
+      
+      
+      </html>
+    </panel>
+  </row>
+</dashboard>

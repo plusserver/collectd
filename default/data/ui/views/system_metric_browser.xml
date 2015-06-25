@@ -1,0 +1,127 @@
+<form>
+  <label>legacy Metrics Monitor</label>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="dropdown" searchWhenChanged="true" token="env">
+      <label>Select Environment:</label>
+      <default>*</default>
+      <populatingSearch earliest="$earliest$" latest="$latest$" fieldForLabel="env" fieldForValue="env">`collectd_index` | dedup "host" | sort "host"| eval fields=split(host,".") | eval env=mvindex(fields,1) | table env</populatingSearch>
+      <choice value="*">all</choice>
+    </input>
+    <input type="dropdown" searchWhenChanged="true" token="host1">
+      <label>Select Host 1:</label>
+      <default>*</default>
+      <search>
+        <query>`collectd_index` $env$ | dedup "host" | sort "host" | table "host"</query>
+      </search>
+      <choice value="*">all</choice>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
+    </input>
+    <input type="dropdown" searchWhenChanged="true" token="host2">
+      <label>Select Host 2:</label>
+      <default>none</default>
+      <search>
+        <query>`collectd_index` $env$ | dedup "host" | sort "host" | table "host"</query>
+      </search>
+      <choice value="none">none</choice>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
+    </input>
+    <input type="dropdown" searchWhenChanged="true" token="object">
+      <label>Select Object</label>
+      <populatingSearch fieldForLabel="object" fieldForValue="object">`collectd_index` `collectd_search_hosts($host1$,$host2$)` | search `collectd_search_hosts($host1$,$host2$)` | dedup "object" | sort "object" | table "object"</populatingSearch>
+      <selectFirstChoice>true</selectFirstChoice>
+    </input>
+    <input type="dropdown" searchWhenChanged="true" token="metric">
+      <label>Select Metric:</label>
+      <populatingSearch fieldForLabel="metric" fieldForValue="metric">`collectd_index` `collectd_search_hosts($host1$,$host2$)` $object$ | search `collectd_search_hosts($host1$,$host2$)` object="$object$" | dedup "metric" | sort "metric" | table "metric"</populatingSearch>
+      <selectFirstChoice>true</selectFirstChoice>
+    </input>
+    <input type="time" searchWhenChanged="true">
+      <label>Select Time:</label>
+      <default>
+        <earliest>-4h@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <chart>
+        <title>Object $object$ by host</title>
+        <search>
+          <query>`collectd_index` | search `collectd_search_hosts($host1$,$host2$)` object="$object$" metric="$metric$" | timechart bins=1440 avg(value) by host useother=no limit=15</query>
+        </search>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+        <option name="charting.chart.bubbleMaximumSize">50</option>
+        <option name="charting.chart.bubbleMinimumSize">10</option>
+        <option name="charting.chart.bubbleSizeBy">area</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>Heat map: $object$ by host</title>
+        <search>
+          <query>`collectd_index` | search `collectd_search_hosts($host1$,$host2$)` object="$object$" metric="$metric$" | timechart bins=1440 avg(value) by host useother=no limit=15</query>
+        </search>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
+        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.visibility">visible</option>
+        <option name="charting.axisTitleY.visibility">collapsed</option>
+        <option name="charting.axisTitleY2.visibility">visible</option>
+        <option name="charting.axisX.scale">linear</option>
+        <option name="charting.axisY.scale">linear</option>
+        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.scale">inherit</option>
+        <option name="charting.chart">area</option>
+        <option name="charting.chart.nullValueMode">connect</option>
+        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
+        <option name="charting.chart.stackMode">default</option>
+        <option name="charting.chart.style">shiny</option>
+        <option name="charting.drilldown">all</option>
+        <option name="charting.layout.splitSeries">0</option>
+        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.map.center">(0,0)</option>
+        <option name="mapping.map.zoom">2</option>
+        <option name="mapping.markerLayer.markerMaxSize">50</option>
+        <option name="mapping.markerLayer.markerMinSize">10</option>
+        <option name="mapping.markerLayer.markerOpacity">0.8</option>
+        <option name="mapping.tileLayer.maxZoom">7</option>
+        <option name="mapping.tileLayer.minZoom">0</option>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">heatmap</option>
+        <option name="drilldown">cell</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
+  -->
+</form>

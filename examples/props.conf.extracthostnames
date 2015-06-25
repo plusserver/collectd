@@ -1,0 +1,7 @@
+[collectd]
+TIME_PREFIX = ^.+\..+\..+\s.+\s
+EXTRACT-metric_value = ^(?P<host>[^\.]+)[^\.\n]*\.(?P<object>[^\.]+)\.(?P<metric>[^ ]+)\s+(?P<value>[^ ]+)
+EXTRACT-metric_kv = ^(?P<host>[^\.]+)[^\.\n]*\.(?P<object>[^\.]+)\.(?P<_KEY_1>[^ ]+)\s+(?P<_VAL_1>[^ ]+)
+SHOULD_LINEMERGE=false
+TRANSFORMS-mask= mask-collectd
+EVAL-host = replace(host,"_",".")
