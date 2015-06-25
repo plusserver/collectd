@@ -138,7 +138,7 @@ This will help you when searching and comparing large amount of hosts.
 Feedback and Contact
 =====================
 
-If you have Feedback, issues or questions please use issue tracker at Github page: http://github.com/blafasel . 
+If you have Feedback, issues or questions please use issue tracker at Github page: http://github.com/Nexinto/collectd.git . 
 For direct Feedback please contact: splunkapps@nexinto.com. 
 
 This app was created by:

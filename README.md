@@ -1,2 +1,2 @@
 # collectd
-collectd
+splunk collectd app
