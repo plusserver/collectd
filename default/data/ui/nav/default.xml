@@ -10,7 +10,10 @@
   </collection>
   <view name="process_state_metric"  />
   <view name="net_metric"  />
+  
+  
   <view name="help"  />
   
   <view name="search" />
+  <a href="http://nexinto.com">powered by Nexinto GmbH</a>
 </nav>
