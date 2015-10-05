@@ -57,24 +57,6 @@
       </default>
     </input>
   </fieldset>
-<!--  
-<row>
-  <panel>
-  <html>
-  <p>debug</p>
-  <p><![CDATA[
-	  | metadata type=hosts `collectd_index` |
-	  search $envmultiselect$ totalCount>0 | 
-	  dedup "host" | 
-	  sort "host" | 
-	  regex host="^[^\d]" |
-	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
-	  table host hostreplace
-]]>	</p>
-  </html>
-  </panel>
-  </row>
--->
   <row>
     <panel id="panel1_setWidth_67">
       <chart>
@@ -113,8 +95,8 @@ timechart bins=200 avg(value) by host useother=no limit=15 |
     <panel id="panel1_setWidth_33">
       <table>
         <title>Load 1 Minute by Host</title>
-        <search>
-          <query>
+        <searchString>
+          
 <![CDATA[	  
 `collectd_index` $hostmultiselect$ $envmultiselect$    object=load  metric="load.shortterm" |
 stats avg(value) as AvgLoad max(value) as MaxLoad by host |
@@ -124,8 +106,7 @@ sort 10 -AvgLoad |
 
 table host AvgLoad MaxLoad
 ]]>		  
-</query>
-        </search>
+</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -174,8 +155,7 @@ timechart bins=200 avg(value) by host useother=no limit=15
     <panel id="panel2_setWidth_33">
       <table>
         <title>Load 5 Minute by Host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$    object=load  metric="load.midterm" |
 stats avg(value) as AvgLoad max(value) as MaxLoad by host |
@@ -185,8 +165,7 @@ sort 10 -AvgLoad |
 
 table host AvgLoad MaxLoad
 ]]>
-		  </query>
-        </search>
+		  </searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -232,8 +211,7 @@ timechart bins=200 avg(value) by host useother=no limit=15
     <panel id="panel3_setWidth_33">
       <table>
         <title>Load 15 Minute by Host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[	  
 `collectd_index` $hostmultiselect$ $envmultiselect$   object=load  metric="load.longterm" |
 stats avg(value) as AvgLoad max(value) as MaxLoad by host |
@@ -243,8 +221,7 @@ sort 10 -AvgLoad |
 
 table host AvgLoad MaxLoad
 ]]>		  
-		  </query>
-        </search>
+		  </searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
