@@ -52,8 +52,8 @@
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
+        <earliestTime>-24h@h</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>

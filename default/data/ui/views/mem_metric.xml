@@ -52,8 +52,8 @@
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
+        <earliestTime>-24h@h</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
@@ -96,8 +96,7 @@
     <panel id="panel1_setWidth_33">
        <table>
         <title>Memory used by host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$  object=memory metric="memory-used" |
 stats avg(value) AS Avg max(value) AS Max by host |
@@ -107,8 +106,7 @@ eval Max = `format_bytes(Max)` |
 
 table host Avg Max
 ]]>
-</query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -156,8 +154,7 @@ timechart bins=200 avg(mbytes) by host useother=no limit=15
     <panel id="panel2_setWidth_33">
          <table>
         <title>Memory free by host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$  object=memory metric="memory-free" |
 stats avg(value) AS Avg max(value) AS Max by host |
@@ -168,8 +165,7 @@ eval Max = `format_bytes(Max)` |
 table host Avg Max
 ]]>
 
-</query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -217,8 +213,7 @@ timechart bins=200 avg(mbytes) by host useother=no limit=15
     <panel id="panel3_setWidth_33">
          <table>
         <title>Memorycached by host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$  object=memory metric="memory-cached" |
 stats avg(value) AS Avg max(value) AS Max by host |
@@ -228,8 +223,7 @@ eval Max = `format_bytes(Max)` |
 
 table host Avg Max
 ]]>
-</query>
-        </search>
+</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -276,8 +270,7 @@ timechart bins=200 avg(mbytes) by host useother=no limit=15
     <panel id="panel4_setWidth_33">
          <table>
         <title>Memorybuffered by host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$  object=memory metric="memory-buffered" |
 stats avg(value) AS Avg max(value) AS Max by host |
@@ -287,8 +280,7 @@ eval Max = `format_bytes(Max)` |
 
 table host Avg Max
 ]]>
-</query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -337,8 +329,7 @@ timechart bins=200 avg(mbytes) by host useother=no limit=15
     <panel id="panel5_setWidth_33">
          <table>
         <title>Swap used by host</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		  
 `collectd_index` $hostmultiselect$ $envmultiselect$  object=swap metric="swap-used" |
 stats avg(value) AS Avg max(value) AS Max by host |
@@ -348,8 +339,7 @@ eval Max = `format_bytes(Max)` |
 
 table host Avg Max
 ]]>
-</query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>

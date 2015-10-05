@@ -68,8 +68,8 @@
 	<input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
+        <earliestTime>-24h@h</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
@@ -113,8 +113,7 @@ timechart bins=200 avg(cpu-used) by host
     <panel id="panel1_setWidth_33">
       <table>
         <title>CPU used by host (% core$object$)</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[
 `collectd_index` metric="cpu-idle" $hostmultiselect$ $envmultiselect$  object="$object$" |
 eval cpu-used=100-(value)   | 
@@ -127,16 +126,7 @@ eval max=tostring(round(max,2)) |
 eval max=tostring(max + "%") |
 
 ]]>
-  </query>
-<!--
-  `collectd_index` `collectd_search_hosts($host1$,$host2$)` AND $envmultiselect$ object="$object$" metric="cpu-idle" | 
-  eval cpu_used=100-value 	|
-  stats avg(cpu_used) as CPUValue by host | 
-  eval CPUPct=round(CPUValue,1) | 
-  sort 10 -CPUPct 	|  
-  table host CPUPct
--->
-  </search>
+  </searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -186,8 +176,7 @@ timechart bins=200 avg(value) by host
     <panel id="panel2_setWidth_33">
       <table>
         <title>System CPU used by host (% core$object$)</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[
 `collectd_index` metric="cpu-system" $hostmultiselect$ $envmultiselect$  object="$object$" |
 bucket span=10m object | 
@@ -199,8 +188,7 @@ eval max=tostring(round(max,2)) |
 eval max=tostring(max + "%") |
 
 ]]>		  
-		  </query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -248,8 +236,7 @@ timechart bins=200 avg(value) by host
     <panel id="panel3_setWidth_33">
         <table>
         <title>User CPU used by host (% core$object$)</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[
 `collectd_index` metric="cpu-user" $hostmultiselect$ $envmultiselect$  object="$object$" |
 bucket span=10m object | 
@@ -261,8 +248,7 @@ eval max=tostring(round(max,2)) |
 eval max=tostring(max + "%") |
 
 ]]>	        
-</query>
-	</search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -309,8 +295,7 @@ timechart bins=200 avg(value) by host
     <panel id="panel4_setWidth_33">
         <table>
         <title>CPU IO Wait by host by host (% core$object$)</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[
 `collectd_index` metric="cpu-wait" $hostmultiselect$ $envmultiselect$  object="$object$" |
 bucket span=10m object | 
@@ -322,8 +307,7 @@ eval max=tostring(round(max,2)) |
 eval max=tostring(max + "%") |
 
 ]]>			  
-		  </query>
-        </search>
+		</searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>

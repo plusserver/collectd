@@ -90,8 +90,7 @@ eval zombies = round(zombies)
     <panel>
       <table>
         <title>Processes by state over time for $hostselected$</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[
 `collectd_index` host="*$env$*" host=$hostselected$ (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=* ) | 
 
@@ -104,10 +103,7 @@ eval sleeping = round (sleeping) |
 eval blocked = round (blocked) | 
 eval zombies = round(zombies)
 ]]>
-</query>
-          <earliest>-24h@h</earliest>
-          <latest>now</latest>
-        </search>
+</searchString>
 		<option name="drilldown">none</option>
       </table>
     </panel>
