@@ -68,8 +68,8 @@ table object
 	<input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-4h@m</earliest>
-        <latest>now</latest>
+        <earliestTime>-4h@m</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
