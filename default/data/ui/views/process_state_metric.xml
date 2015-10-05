@@ -37,8 +37,8 @@
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
+        <earliestTime>-24h@h</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
@@ -46,8 +46,7 @@
     <panel>
       <chart>
         <title>Processes by state over time for $hostselected$</title>
-        <search>
-          <query>
+        <searchString>
 <![CDATA[		   
 `collectd_index` host="*$env$*" host=$hostselected$  (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=* ) | 
 timechart avg(ps_state_sleeping) as sleeping 
@@ -59,8 +58,7 @@ eval sleeping = round (sleeping) |
 eval blocked = round (blocked) | 
 eval zombies = round(zombies)
 ]]>
-	</query>
-        </search>
+	</searchString>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">visible</option>
