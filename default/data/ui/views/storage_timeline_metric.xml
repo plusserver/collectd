@@ -4,16 +4,13 @@
     <input type="dropdown" searchWhenChanged="true" token="env">
       <label>Select Environment:</label>
       <default>*</default>
-      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
-| `envdata`
-	  </populatingSearch>
-
+      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">| `envdata`</populatingSearch>
       <choice value="*">all</choice>
     </input>
     <input type="dropdown" searchWhenChanged="true" token="hostselected">
       <label>Select Host:</label>
       <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
-<![CDATA[
+        <![CDATA[
 	  | metadata type=hosts `collectd_index` |
 	  search host=*$env$* totalCount>0 | 
 	  dedup "host" | 
@@ -24,7 +21,6 @@
 ]]>
       </populatingSearch>
     </input>
-	
     <input type="dropdown" searchWhenChanged="true" token="partition">
       <label>Select Partition</label>
       <populatingSearch fieldForLabel="object_new" fieldForValue="object">
@@ -40,12 +36,11 @@
       <default>*</default>
       <choice value="*">all</choice>
     </input>
-
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-30d@d</earliest>
-        <latest>now</latest>
+        <earliestTime>-30d@d</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
@@ -53,13 +48,11 @@
     <panel>
       <chart>
         <title>Partitions over Time for host $hostselected$</title>
-        <search>
-		<query>
-<![CDATA[
+        <searchString>
+          <![CDATA[
           `collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ |  eval valueMB=round(( ((value/1024) /1024)) / 1024,3) |  timechart latest(valueMB) by object
-]]>		  
-		  </query>
-        </search>
+]]>
+        </searchString>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">visible</option>
@@ -88,15 +81,13 @@
     <panel>
       <table>
         <title>Partitions over Time for host $hostselected$</title>
-        <search>
-          <query>
-            <![CDATA[
+        <searchString>
+          <![CDATA[
 `collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ |
 eval valueMB=`format_bytes(value)` | 
 timechart latest(valueMB) by object		  
 ]]>
-          </query>
-        </search>
+        </searchString>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">visible</option>

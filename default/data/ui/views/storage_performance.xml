@@ -1,21 +1,17 @@
 <form>
   <label>Storage Performance</label>
   <fieldset submitButton="false" autoRun="true">
-   
-   <input type="dropdown" searchWhenChanged="true" token="env">
+    <input type="dropdown" searchWhenChanged="true" token="env">
       <label>Select Environment:</label>
       <default>*</default>
-      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
-| `envdata`
-	  </populatingSearch>
-
+      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">| `envdata`</populatingSearch>
       <choice value="*">all</choice>
     </input>
     <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
       <label>Select Hosts:</label>
       <default>*</default>
       <populatingSearch fieldForLabel="host" fieldForValue="host">
-<![CDATA[
+        <![CDATA[
 	  | metadata type=hosts `collectd_index` |
 	  search host="*$env$*" totalCount>0 | 
 	  dedup "host" | 
@@ -23,63 +19,54 @@
 	  regex host="^[^\d]" |
 	  table "host"
 ]]>
-	  
-	  </populatingSearch>
+      </populatingSearch>
       <choice value="*">all</choice>
-	  
-	  <prefix>(</prefix>
+      <prefix>(</prefix>
       <valuePrefix>host ="</valuePrefix>
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
       <suffix>)</suffix>
     </input>
-	
-   <input type="dropdown" searchWhenChanged="true" token="operation">
-	<label>Select Metric:</label>
-	<selectFirstChoice>true</selectFirstChoice>
-	<choice value="ops">IOps</choice>
-	<choice value="time">Latency</choice>
-	<choice value="octets">Volume</choice>
-   </input>
-	
-	
-	<input type="dropdown" searchWhenChanged="true" token="disk">
+    <input type="dropdown" searchWhenChanged="true" token="operation">
+      <label>Select Metric:</label>
+      <selectFirstChoice>true</selectFirstChoice>
+      <choice value="ops">IOps</choice>
+      <choice value="time">Latency</choice>
+      <choice value="octets">Volume</choice>
+    </input>
+    <input type="dropdown" searchWhenChanged="true" token="disk">
       <label>Select Disk</label>
       <populatingSearch fieldForLabel="object_new" fieldForValue="object">
-<![CDATA[
+        <![CDATA[
 `collectd_index` (metric=disk_ops.read OR metric=disk_ops.write) | dedup object | 
 eval object_new=replace(object,"disk-","") | 
 table object object_new
 ]]>
-	  </populatingSearch>
+      </populatingSearch>
       <default>*</default>
-	  <choice value="*">all</choice>
+      <choice value="*">all</choice>
     </input>
-<!--(object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run") -->
-	
+    <!--(object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run") -->
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-24h@h</earliest>
-        <latest>now</latest>
+        <earliestTime>-24h@h</earliestTime>
+        <latestTime>now</latestTime>
       </default>
     </input>
   </fieldset>
-  
-	<row>
+  <row>
     <panel>
       <chart>
-	  <title>$operation$ Read/Write ratio</title>
-        <search>
-          <query>
-<![CDATA[
+        <title>$operation$ Read/Write ratio</title>
+        <searchString>
+          <![CDATA[
 `collectd_index` (metric=disk_$operation$.read OR metric=disk_$operation$.write) object=$disk$ $hostmultiselect$ host="*$env$*" | 
 timechart max(disk_$operation$_read) max(disk_$operation$_write) by metric 
 ]]>
-</query>
+        </searchString>
         <earliestTime>$earliest$</earliestTime>
         <latestTime>$latest$</latestTime>
-        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">visible</option>
@@ -103,13 +90,11 @@ timechart max(disk_$operation$_read) max(disk_$operation$_write) by metric
         <option name="charting.legend.placement">right</option>
       </chart>
     </panel>
-	
-	<panel>
-	    <table>
+    <panel>
+      <table>
         <title>average $operation$ by Host</title>
-        <search>
-          <query>
-<![CDATA[
+        <searchString>
+          <![CDATA[
 `collectd_index` (metric="disk_$operation$.read" OR metric="disk_$operation$.write") object=$disk$ $hostmultiselect$ host="*$env$*" | 
 stats avg(disk_$operation$_read) as read avg(disk_$operation$_write) as write by host | 
 eval total=read+write | 
@@ -119,10 +104,9 @@ eval total=round(total,2) |
 eval read=round(read,2) |
 eval write=round(write,2)
 ]]>
-		</query>
-		<earliestTime>$earliest$</earliestTime>
+        </searchString>
+        <earliestTime>$earliest$</earliestTime>
         <latestTime>$latest$</latestTime>
-        </search>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -130,52 +114,21 @@ eval write=round(write,2)
         <option name="count">10</option>
       </table>
     </panel>
-	</row>  
-  
-  
-  
-<row>
-      <panel>
+  </row>
+  <row>
+    <panel>
       <table>
         <title>top average Write $operation$ by Device</title>
-        <search>
-          <query>
-<![CDATA[
+        <searchString>
+          <![CDATA[
 `collectd_index` metric="disk_$operation$.write" object=$disk$ $hostmultiselect$ host="*$env$*" | 
 stats avg(value) as value by host object | 
 sort -value | 
 eval value=round(value,2)
 ]]>
-		</query>
-		
-		<earliestTime>$earliest$</earliestTime>
+        </searchString>
+        <earliestTime>$earliest$</earliestTime>
         <latestTime>$latest$</latestTime>
-
-        </search>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
-        <option name="dataOverlayMode">none</option>
-        <option name="drilldown">none</option>
-        <option name="count">10</option>
-      </table>
-	  </panel>
-	  <panel>
-	    <table>
-        <title>top average Read $operation$ by Device</title>
-        <search>
-          <query>
-<![CDATA[
-`collectd_index` metric="disk_$operation$.read" object=$disk$ $hostmultiselect$ host="*$env$*" | 
-stats avg(value) as value by host object | 
-sort -value |
-eval value=round(value,2)
-]]>
-		</query>
-		
-		<earliestTime>$earliest$</earliestTime>
-        <latestTime>$latest$</latestTime>
-
-        </search>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -183,9 +136,25 @@ eval value=round(value,2)
         <option name="count">10</option>
       </table>
     </panel>
-	</row>
-	
-
-	
-
+    <panel>
+      <table>
+        <title>top average Read $operation$ by Device</title>
+        <searchString>
+          <![CDATA[
+`collectd_index` metric="disk_$operation$.read" object=$disk$ $hostmultiselect$ host="*$env$*" | 
+stats avg(value) as value by host object | 
+sort -value |
+eval value=round(value,2)
+]]>
+        </searchString>
+        <earliestTime>$earliest$</earliestTime>
+        <latestTime>$latest$</latestTime>
+        <option name="wrap">true</option>
+        <option name="rowNumbers">false</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="count">10</option>
+      </table>
+    </panel>
+  </row>
 </form>
