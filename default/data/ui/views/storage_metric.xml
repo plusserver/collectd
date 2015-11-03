@@ -69,9 +69,11 @@ stats earliest(df_complex_used) as lastused latest(df_complex_used) as used late
     <panel>
       <chart>
         <title>Storage increase by host in GB</title>
-        <search base="baseSearch">
-          <query>
-            <![CDATA[		  
+        <searchString>
+            <![CDATA[	
+search `collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) |
+stats earliest(df_complex_used) as lastused latest(df_complex_used) as used latest(df_complex_free) as free latest(df_complex_reserved) as reserved by host object |
+			
 eval deltaused = used-lastused | 
 eval full=free+used | 
 stats sum(deltaused) as GB by host | 
@@ -79,8 +81,7 @@ eval GB=round(GB/1024/1024/1024,2) |
 sort -GB |
 search $hostmultiselect$  $envmultiselect$ 
 ]]>
-          </query>
-        </search>
+        </searchString>
         <!--
 funktioniert:
 `collectd_index` (metric="df_complex-used" OR metric="df_complex-free" OR metric="df_complex-reserved") |
@@ -124,9 +125,11 @@ sort -GB
     <panel>
       <table>
         <title>Storage increase by host table</title>
-        <search base="baseSearch">
-          <query>
+        <searchString>
             <![CDATA[		  
+search `collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) |
+stats earliest(df_complex_used) as lastused latest(df_complex_used) as used latest(df_complex_free) as free latest(df_complex_reserved) as reserved by host object |			
+			
 eval deltaused = used-lastused |  
 eval size=free+used |  
 stats sum(deltaused) as deltabytes sum(used) as usedbytes sum(free) as freebytes sum(reserved) as reservedbytes by host |  
@@ -138,8 +141,7 @@ eval usedbytes=`format_bytes(usedbytes)` |
 eval reservedbytes=`format_bytes(reservedbytes)`  | 
 search $hostmultiselect$  $envmultiselect$ 
 ]]>
-          </query>
-        </search>
+        </searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -155,9 +157,11 @@ search $hostmultiselect$  $envmultiselect$
     <panel>
       <table>
         <title>Storage changes by partition</title>
-        <search base="baseSearch">
-          <query>
+        <searchString>
             <![CDATA[
+search `collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) |
+stats earliest(df_complex_used) as lastused latest(df_complex_used) as used latest(df_complex_free) as free latest(df_complex_reserved) as reserved by host object |			
+			
 search $hostmultiselect$  $envmultiselect$ object="$partition$" | 
 eval fullsize=free+used+reserved | 
 eval freeout=`format_bytes_new(free)` | 
@@ -180,8 +184,7 @@ rename usedout as usage |
 rename freeout as free |
 table host partition storageincrease size usage freeout percentused partitionorg
 ]]>
-          </query>
-        </search>
+         </searchString>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
@@ -203,7 +206,9 @@ table host partition storageincrease size usage freeout percentused partitionorg
         <title>free vs. used by host in GB</title>
         <searchString>
             <![CDATA[
-|
+search `collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) |
+stats earliest(df_complex_used) as lastused latest(df_complex_used) as used latest(df_complex_free) as free latest(df_complex_reserved) as reserved by host object |
+			
 search $hostmultiselect$  $envmultiselect$ object="$partition$" | 
 chart sum(used) as totalused sum(free) as totalfree sum(reserved) as totalreserved by host | 
 sort -totalused | 
@@ -248,9 +253,9 @@ eval totalreserved=round(totalreserved/1024/1024/1024,2)
 `collectd_index` $hostmultiselect$ $envmultiselect$ metric="df_complex-used" object="$partition$" |
 stats avg(value) AS bytes by host object |
 sort -bytes |
-eval UsedMem = `format_bytes_new(bytes)` |
+eval UsedMB = `format_bytes_new(bytes)` |
 eval Partition=replace(object,"df-","/") |
-table host Partition UsedMem
+table host Partition UsedMB
 ]]>
          </searchString>
         <option name="wrap">true</option>
