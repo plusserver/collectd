@@ -4,19 +4,8 @@
     <input type="dropdown" searchWhenChanged="true" token="env">
       <label>Select Environment:</label>
       <default>*</default>
-      <populatingSearch earliest="$earliest$" latest="$latest$" fieldForLabel="env" fieldForValue="envdata">
-	  <![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval fields=split(host,".")
-| eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-	  ]]>
+      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
+| `envdata`
 	  </populatingSearch>
       <choice value="*">all</choice>
     </input>

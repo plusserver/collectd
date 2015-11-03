@@ -5,18 +5,9 @@
       <label>Select Environment:</label>
       <default>*</default>
       <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
-<![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-]]>
+| `envdata`
 	  </populatingSearch>
+
       <choice value="*">all</choice>
 	  
 	  <prefix>(</prefix>
