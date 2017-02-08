@@ -2,29 +2,9 @@
   <label>Storage Trends</label>
   <search id="baseSearch">
     <query>`collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) 
-| stats earliest(df_complex_used) AS lastused latest(df_complex_used) AS used latest(df_complex_free) AS free latest(df_complex_reserved) AS reserved BY host object</query>
+    | stats earliest(df_complex_used) AS lastused latest(df_complex_used) AS used latest(df_complex_free) AS free latest(df_complex_reserved) AS reserved BY host object</query>
   </search>
   <fieldset submitButton="false" autoRun="true">
-    <input type="multiselect" searchWhenChanged="true" token="envmultiselect">
-      <label>Select Environment:</label>
-      <default>*</default>
-      <search>
-        <query>| metadata type=hosts `collectd_index` 
-| search totalCount&gt;0 
-| eval host=replace(host,"_","."), fields=split(host,"."), stage=mvindex(fields,1), environment=mvindex(fields,2), env=tostring(environment + "_" + stage), envdata=tostring(stage + "." + environment)
-| stats count BY env envdata
-| fields - count
-| sort env</query>
-      </search>
-      <choice value="*">all</choice>
-      <prefix>(</prefix>
-      <valuePrefix>host="*</valuePrefix>
-      <valueSuffix>*"</valueSuffix>
-      <delimiter> OR </delimiter>
-      <suffix>)</suffix>
-      <fieldForLabel>envdata</fieldForLabel>
-      <fieldForValue>envdata</fieldForValue>
-    </input>
     <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
       <label>Select Hosts:</label>
       <default>*</default>
@@ -61,7 +41,7 @@
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-30d@d</earliest>
+        <earliest>-24h@h</earliest>
         <latest>now</latest>
       </default>
     </input>
@@ -75,7 +55,7 @@
 | stats sum(deltaused) AS GB BY host 
 | eval GB=round(GB/1024/1024/1024,2) 
 | sort -GB 
-| search $hostmultiselect$ $envmultiselect$</query>
+| search $hostmultiselect$</query>
         </search>
         <!--
 funktioniert:
@@ -126,16 +106,16 @@ sort -GB
 | sort -deltabytes
 | table host deltabytes usedbytes freebytes reservedbytes
 | eval deltabytes=`format_bytes(deltabytes)`, freebytes=`format_bytes(freebytes)`, usedbytes=`format_bytes(usedbytes)`, reservedbytes=`format_bytes(reservedbytes)`
-| search $hostmultiselect$ $envmultiselect$</query>
+| search $hostmultiselect$</query>
         </search>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">row</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
         <drilldown target="My New Window">
           <link>storage_timeline_metric?form.hostselected=$click.value$</link>
         </drilldown>
-        <option name="count">10</option>
       </table>
     </panel>
   </row>
@@ -144,7 +124,7 @@ sort -GB
       <table>
         <title>Storage Changes by Partition</title>
         <search base="baseSearch">
-          <query>| search $hostmultiselect$ $envmultiselect$ object="$partition$" 
+          <query>| search $hostmultiselect$ object="$partition$" 
 | eval fullsize=free+used+reserved, freeout=`format_bytes_new(free)`, usedout=`format_bytes_new(used )`, reservedout=`format_bytes_new(reserved)`, fullout=`format_bytes_new(fullsize)`, percentused = (used/fullsize)*100, percentused = round(percentused), deltaused = used-lastused 
 | search deltaused!=0 
 | eval partitionorg = object, partition=replace(object,"df-","/"), partition=replace(partition,"-","/") 
@@ -153,14 +133,14 @@ sort -GB
 | rename delta AS storageincrease usedout AS usage freeout AS free fullout AS size 
 | table host partition storageincrease size usage freeout percentused partitionorg</query>
         </search>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">cell</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
         <drilldown target="My New Window">
           <link>storage_timeline_metric?form.hostselected=$click.value$&amp;form.partition=$row.partitionorg$</link>
         </drilldown>
-        <option name="count">10</option>
       </table>
     </panel>
   </row>
