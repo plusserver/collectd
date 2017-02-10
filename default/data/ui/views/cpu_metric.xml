@@ -1,71 +1,48 @@
 <form script="custom_layout_width.js">
   <label>CPU Usage</label>
   <fieldset submitButton="false" autoRun="true">
-    <input type="multiselect" searchWhenChanged="true" token="envmultiselect">
-      <label>Select Environment:</label>
-      <default>*</default>
-      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
-<![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-]]>
-	  </populatingSearch>
-      <choice value="*">all</choice>
-	  
-	  <prefix>(</prefix>
-      <valuePrefix>host ="*</valuePrefix>
-      <valueSuffix>*"</valueSuffix>
-      <delimiter> OR </delimiter>
-      <suffix>)</suffix>
-    </input>
-	
     <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
-      <label>Select Hosts: </label>
+      <label>Select Hosts:</label>
       <default>*</default>
-      <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
-<![CDATA[
-	  | metadata type=hosts `collectd_index` |
-	  search $envmultiselect$ totalCount>0 | 
-	  dedup "host" | 
-	  sort "host" | 
-	  regex host="^[^\d]" |
-	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
-	  table host hostreplace
-]]>	  
-	  </populatingSearch>
+      <search>
+        <query>| metadata type=hosts `collectd_index` 
+| search totalCount&gt;0 
+| stats count BY host
+| fields - count</query>
+      </search>
       <choice value="*">all</choice>
-	  
-	  <prefix>(</prefix>
+      <prefix>(</prefix>
       <valuePrefix>host ="</valuePrefix>
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
       <suffix>)</suffix>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
     </input>
-	
-	<input type="dropdown" searchWhenChanged="true" token="object">
+    <input type="dropdown" searchWhenChanged="true" token="object">
       <label>Select Object</label>
-      <default>*</default>	   
-	  <choice value="*">all Cores</choice>
-      <populatingSearch fieldForLabel="object" fieldForValue="object">
-
-<![CDATA[	  
-	  `collectd_index`  $hostmultiselect$ $envmultiselect$  object=cpu-* | 
-	  dedup "object" | 
-	  sort "object" | 
-	  table "object"
-]]>
-	  
-	 </populatingSearch>
+      <default>*</default>
+      <choice value="*">Aggregate</choice>
+      <search>
+        <query>`collectd_index` $hostmultiselect$ object=cpu-* 
+| stats count BY object
+| fields - count</query>
+        <earliest>-7d@h</earliest>
+        <latest>now</latest>
+      </search>
+      <fieldForLabel>object</fieldForLabel>
+      <fieldForValue>object</fieldForValue>
     </input>
-    
-	<input type="time" searchWhenChanged="true">
+    <input type="dropdown" token="statsfunc" searchWhenChanged="true">
+      <label>Statistical Function</label>
+      <choice value="min">Minimum</choice>
+      <choice value="mean">Mean</choice>
+      <choice value="avg">Average</choice>
+      <choice value="max">Maximum</choice>
+      <default>avg</default>
+      <initialValue>avg</initialValue>
+    </input>
+    <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
         <earliestTime>-24h@h</earliestTime>
@@ -73,30 +50,26 @@
       </default>
     </input>
   </fieldset>
-  
-    <row>
+  <row>
     <panel id="panel1_setWidth_67">
       <chart>
-        <title>CPU usage by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-idle" $hostmultiselect$ $envmultiselect$  object="$object$" |
-eval cpu-used=100-(value)   | 
-bucket span=10m object | 
-
-timechart bins=200 avg(cpu-used) by host
-]]>
-		</searchString>
-        <earliestTime>$earliest$</earliestTime>
-        <latestTime>$latest$</latestTime>
+        <title>CPU Usage by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-idle" $hostmultiselect$ object="$object$" 
+| eval cpu-used=100-(value)
+| timechart $statsfunc$(cpu-used) BY host useother=f limit=15</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.axisTitleY.visibility">collapsed</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">line</option>
         <option name="charting.chart.nullValueMode">connect</option>
@@ -107,58 +80,47 @@ timechart bins=200 avg(cpu-used) by host
         <option name="charting.layout.splitSeries">0</option>
         <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
         <option name="charting.legend.placement">bottom</option>
-        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
       </chart>
     </panel>
     <panel id="panel1_setWidth_33">
       <table>
-        <title>CPU used by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-idle" $hostmultiselect$ $envmultiselect$  object="$object$" |
-eval cpu-used=100-(value)   | 
-bucket span=10m object | 
-stats avg(cpu-used) as used max(cpu-used) as max by host |
-sort -used | 
-eval used=tostring(round(used,2)) |
-eval used=tostring(used + "%") |
-eval max=tostring(round(max,2)) |
-eval max=tostring(max + "%") |
-
-]]>
-  </searchString>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+        <title>CPU Used by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-idle" $hostmultiselect$ object="$object$"
+| eval cpu-used=100-value
+| stats avg(cpu-used) AS Average max(cpu-used) AS Maximum BY host 
+| sort 15 -Maximum 
+| eval Average=round(Average,2) . " %", Maximum=round(Maximum,2) . " %"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="count">15</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
-        <option name="count">10</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
       </table>
     </panel>
   </row>
-  
-  
   <row>
     <panel id="panel2_setWidth_67">
       <chart>
-        <title>CPU system by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-system" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-
-timechart bins=200 avg(value) by host
-]]>
-		</searchString>
-        <earliestTime>$earliest$</earliestTime>
-        <latestTime>$latest$</latestTime>
+        <title>System CPU by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-system" $hostmultiselect$ object="$object$" 
+| timechart $statsfunc$(value) BY host useother=f limit=15</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.axisTitleY.visibility">collapsed</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">line</option>
         <option name="charting.chart.nullValueMode">connect</option>
@@ -169,57 +131,46 @@ timechart bins=200 avg(value) by host
         <option name="charting.layout.splitSeries">0</option>
         <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
         <option name="charting.legend.placement">bottom</option>
-        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
       </chart>
     </panel>
-
     <panel id="panel2_setWidth_33">
       <table>
-        <title>System CPU used by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-system" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-stats avg(value) as used max(value) as max by host |
-sort -used | 
-eval used=tostring(round(used,2)) |
-eval used=tostring(used + "%") |
-eval max=tostring(round(max,2)) |
-eval max=tostring(max + "%") |
-
-]]>		  
-		</searchString>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+        <title>System CPU by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-system" $hostmultiselect$ object="$object$" 
+| stats avg(value) AS Average max(value) AS Maximum BY host 
+| sort 15 -Maximum
+| eval Average=round(Average,2) . " %", Maximum=round(Maximum,2) . " %"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
-        <option name="count">10</option>
-      </table>    
-	  </panel>
-
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
   </row>
   <row>
     <panel id="panel3_setWidth_67">
       <chart>
-        <title>CPU user by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-user" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-
-timechart bins=200 avg(value) by host
-]]>	
-		</searchString>
-        <earliestTime>$earliest$</earliestTime>
-        <latestTime>$latest$</latestTime>
+        <title>User CPU by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-user" $hostmultiselect$ object="$object$" 
+| timechart $statsfunc$(value) BY host useother=f limit=15</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.axisTitleY.visibility">collapsed</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">line</option>
         <option name="charting.chart.nullValueMode">connect</option>
@@ -230,55 +181,46 @@ timechart bins=200 avg(value) by host
         <option name="charting.layout.splitSeries">0</option>
         <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
         <option name="charting.legend.placement">bottom</option>
-        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
       </chart>
     </panel>
     <panel id="panel3_setWidth_33">
-        <table>
-        <title>User CPU used by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-user" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-stats avg(value) as used max(value) as max by host |
-sort -used | 
-eval used=tostring(round(used,2)) |
-eval used=tostring(used + "%") |
-eval max=tostring(round(max,2)) |
-eval max=tostring(max + "%") |
-
-]]>	        
-		</searchString>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+      <table>
+        <title>User CPU by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-user" $hostmultiselect$ object="$object$" 
+| stats avg(value) AS Average max(value) AS Maximum BY host 
+| sort 15 -Maximum 
+| eval Average=round(Average,2) . " %", Maximum=round(Maximum,2) . " %"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
-        <option name="count">10</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
       </table>
     </panel>
   </row>
-  
-    <row>
+  <row>
     <panel id="panel4_setWidth_67">
       <chart>
-        <title>CPU IO Wait by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-wait" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-timechart bins=200 avg(value) by host
-]]>
-</searchString>
-        <earliestTime>$earliest$</earliestTime>
-        <latestTime>$latest$</latestTime>
+        <title>CPU I/O Wait by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-wait" $hostmultiselect$ object="$object$" 
+| timechart $statsfunc$(value) BY host useother=f limit=15</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
+        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
         <option name="charting.axisTitleX.visibility">collapsed</option>
         <option name="charting.axisTitleY.visibility">collapsed</option>
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">line</option>
         <option name="charting.chart.nullValueMode">connect</option>
@@ -289,32 +231,26 @@ timechart bins=200 avg(value) by host
         <option name="charting.layout.splitSeries">0</option>
         <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
         <option name="charting.legend.placement">bottom</option>
-        <option name="charting.axisTitleX.text">$metric$ by host over time</option>
       </chart>
     </panel>
     <panel id="panel4_setWidth_33">
-        <table>
-        <title>CPU IO Wait by host by host (% core$object$)</title>
-        <searchString>
-<![CDATA[
-`collectd_index` metric="cpu-wait" $hostmultiselect$ $envmultiselect$  object="$object$" |
-bucket span=10m object | 
-stats avg(value) as used max(value) as max by host |
-sort -used | 
-eval used=tostring(round(used,2)) |
-eval used=tostring(used + "%") |
-eval max=tostring(round(max,2)) |
-eval max=tostring(max + "%") |
-
-]]>			  
-		</searchString>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+      <table>
+        <title>CPU I/O Wait by Host (Top 15)</title>
+        <search>
+          <query>`collectd_index` metric="cpu-wait" $hostmultiselect$ object="$object$" 
+| stats avg(value) AS Average max(value) AS Maximum BY host 
+| sort 15 -Maximum
+| eval Average=round(Average,2) . " %"
+| eval Maximum=round(Maximum,2) . " %"</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
-        <option name="count">10</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
       </table>
     </panel>
   </row>
-  
 </form>

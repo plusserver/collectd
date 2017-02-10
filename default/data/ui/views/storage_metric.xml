@@ -1,101 +1,61 @@
 <form>
   <label>Storage Trends</label>
+  <search id="baseSearch">
+    <query>`collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) 
+    | stats earliest(df_complex_used) AS lastused latest(df_complex_used) AS used latest(df_complex_free) AS free latest(df_complex_reserved) AS reserved BY host object</query>
+  </search>
   <fieldset submitButton="false" autoRun="true">
-    <!--(object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run") -->
-    <input type="multiselect" searchWhenChanged="true" token="envmultiselect">
-      <label>Select Environment:</label>
-      <default>*</default>
-      <populatingSearch fieldForLabel="envdata" fieldForValue="envdata">
-<![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-]]>
-	  </populatingSearch>
-      <choice value="*">all</choice>
-	  
-	  <prefix>(</prefix>
-      <valuePrefix>host ="*</valuePrefix>
-      <valueSuffix>*"</valueSuffix>
-      <delimiter> OR </delimiter>
-      <suffix>)</suffix>
-    </input>
-
     <input type="multiselect" searchWhenChanged="true" token="hostmultiselect">
       <label>Select Hosts:</label>
       <default>*</default>
-      <populatingSearch fieldForLabel="host" fieldForValue="host">
-        <![CDATA[
-  	  | metadata type=hosts `collectd_index` |
-	  search $envmultiselect$ totalCount>0 | 
-	  dedup "host" | 
-	  sort "host" | 
-	  regex host="^[^\d]" |
-	  table "host"
-
-]]>
-      </populatingSearch>
+      <search>
+        <query>| metadata type=hosts `collectd_index` 
+| search $hostmultiselect$ totalCount&gt;0 
+| stats count BY "host" 
+| fields - count
+| sort "host"</query>
+      </search>
       <choice value="*">all</choice>
       <prefix>(</prefix>
       <valuePrefix>host ="</valuePrefix>
       <valueSuffix>"</valueSuffix>
       <delimiter> OR </delimiter>
       <suffix>)</suffix>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
     </input>
     <input type="dropdown" searchWhenChanged="true" token="partition">
       <label>Select Partition</label>
-      <populatingSearch fieldForLabel="object_new" fieldForValue="object">
-        <![CDATA[
-`collectd_index` object="df-*" (object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run")|
- dedup "object" | 
- eval object_new=replace(object,"df-","/") |
- eval object_new=replace(object_new,"-","/") |
- sort "object_new" | 
- table "object_new" object
-]]>
-      </populatingSearch>
+      <search>
+        <query>`collectd_index` object="df-*" (object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run")
+| stats count BY object 
+| eval object_new=replace(object,"df-","/"), object_new=replace(object_new,"-","/") 
+| sort "object_new" 
+| table "object_new" object</query>
+      </search>
       <default>*</default>
       <choice value="*">all</choice>
+      <fieldForLabel>object_new</fieldForLabel>
+      <fieldForValue>object</fieldForValue>
     </input>
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-30d@d</earliest>
+        <earliest>-24h@h</earliest>
         <latest>now</latest>
       </default>
     </input>
   </fieldset>
-  
-  <search id="baseSearch">
-    <query>
-<![CDATA[		  	
-search `collectd_index` object="df-*" (df_complex_used=* OR df_complex_free=* OR df_complex_reserved=*) |
-stats earliest(df_complex_used) as lastused latest(df_complex_used) as used latest(df_complex_free) as free latest(df_complex_reserved) as reserved by host object 
-]]>
-    </query>
-  </search>   
-  
   <row>
     <panel>
       <chart>
-        <title>Storage increase by host in GB</title>
+        <title>Storage Increase by Host in GB</title>
         <search base="baseSearch">
-          <query>
-            <![CDATA[		  
-eval deltaused = used-lastused | 
-eval full=free+used | 
-stats sum(deltaused) as GB by host | 
-eval GB=round(GB/1024/1024/1024,2) |
-sort -GB |
-search $hostmultiselect$  $envmultiselect$ 
-]]>
-          </query>
+          <query>| eval deltaused = used-lastused 
+| stats sum(deltaused) AS GB BY host 
+| eval GB=round(GB/1024/1024/1024,2) 
+| sort -GB 
+| search $hostmultiselect$</query>
         </search>
         <!--
 funktioniert:
@@ -139,97 +99,60 @@ sort -GB
   <row>
     <panel>
       <table>
-        <title>Storage increase by host table</title>
+        <title>Storage Increase by Host</title>
         <search base="baseSearch">
-          <query>
-<![CDATA[		  
-eval deltaused = used-lastused |  
-eval size=free+used |  
-stats sum(deltaused) as deltabytes sum(used) as usedbytes sum(free) as freebytes sum(reserved) as reservedbytes by host |  
-sort -deltabytes |  
-table host deltabytes usedbytes freebytes reservedbytes |  
-eval deltabytes=`format_bytes(deltabytes)` |  
-eval freebytes=`format_bytes(freebytes)` |  
-eval usedbytes=`format_bytes(usedbytes)` |  
-eval reservedbytes=`format_bytes(reservedbytes)`  | 
-search $hostmultiselect$  $envmultiselect$ 
-]]>		  
-		  </query>
+          <query>| eval deltaused = used-lastused, size=free+used
+| stats sum(deltaused) AS deltabytes sum(used) AS usedbytes sum(free) AS freebytes sum(reserved) AS reservedbytes BY host
+| sort -deltabytes
+| table host deltabytes usedbytes freebytes reservedbytes
+| eval deltabytes=`format_bytes(deltabytes)`, freebytes=`format_bytes(freebytes)`, usedbytes=`format_bytes(usedbytes)`, reservedbytes=`format_bytes(reservedbytes)`
+| search $hostmultiselect$</query>
         </search>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
+        <option name="count">10</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">row</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
         <drilldown target="My New Window">
           <link>storage_timeline_metric?form.hostselected=$click.value$</link>
         </drilldown>
-        <option name="count">10</option>
       </table>
     </panel>
   </row>
   <row>
     <panel>
       <table>
-        <title>Storage changes by partition</title>
+        <title>Storage Changes by Partition</title>
         <search base="baseSearch">
-          <query>
-            <![CDATA[
-search $hostmultiselect$  $envmultiselect$ object="$partition$" | 
-eval fullsize=free+used+reserved | 
-eval freeout=`format_bytes_new(free)` | 
-eval usedout=`format_bytes_new(used )` | 
-eval reservedout=`format_bytes_new(reserved)` | 
-eval fullout=`format_bytes_new(fullsize)` | 
-eval percentused = (used/fullsize)*100 |
-eval percentused = round(percentused) | 
-eval deltaused = used-lastused | 
-search deltaused!=0 | 
-rename fullout as size | 
-eval partitionorg = object | 
-eval partition=replace(object,"df-","/") |
-eval partition=replace(partition,"-","/") |
-rename deltaused as delta |
-sort -delta |
-eval delta=`format_bytes_new(delta)` | 
-rename delta as storageincrease |
-rename usedout as usage |
-rename freeout as free |
-table host partition storageincrease size usage freeout percentused partitionorg
-]]>
-          </query>
+          <query>| search $hostmultiselect$ object="$partition$" 
+| eval fullsize=free+used+reserved, freeout=`format_bytes_new(free)`, usedout=`format_bytes_new(used )`, reservedout=`format_bytes_new(reserved)`, fullout=`format_bytes_new(fullsize)`, percentused = (used/fullsize)*100, percentused = round(percentused), deltaused = used-lastused 
+| search deltaused!=0 
+| eval partitionorg = object, partition=replace(object,"df-","/"), partition=replace(partition,"-","/") 
+| sort -deltaused
+| eval delta=`format_bytes_new(deltaused)` 
+| rename delta AS storageincrease usedout AS usage freeout AS free fullout AS size 
+| table host partition storageincrease size usage freeout percentused partitionorg</query>
         </search>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
-        <option name="dataOverlayMode">none</option>
-        <option name="drilldown">all</option>
-        <drilldown target="My New Window">
-          <link>
-		  <![CDATA[
-		  storage_timeline_metric?form.hostselected=$click.value$&form.partition=$row.partitionorg$
-		  ]]>	  
-		  </link>
-        </drilldown>
-
         <option name="count">10</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
+        <drilldown target="My New Window">
+          <link>storage_timeline_metric?form.hostselected=$click.value$&amp;form.partition=$row.partitionorg$</link>
+        </drilldown>
       </table>
     </panel>
   </row>
   <row>
     <panel>
       <chart>
-        <title>free vs. used by host in GB</title>
+        <title>Free vs. Used by Host in GB</title>
         <search base="baseSearch">
-          <query>
-            <![CDATA[
-|
-search $hostmultiselect$  $envmultiselect$ object="$partition$" | 
-chart sum(used) as totalused sum(free) as totalfree sum(reserved) as totalreserved by host | 
-sort -totalused | 
-eval totalused=round(totalused/1024/1024/1024,2) | 
-eval totalfree=round(totalfree/1024/1024/1024,2) | 
-eval totalreserved=round(totalreserved/1024/1024/1024,2) 
-]]>
-          </query>
+          <query>| search $hostmultiselect$ $envmultiselect$ object="$partition$" 
+| chart sum(used) AS totalused sum(free) AS totalfree sum(reserved) AS totalreserved BY host 
+| sort -totalused 
+| eval totalused=round(totalused/1024/1024/1024,2), totalfree=round(totalfree/1024/1024/1024,2), totalreserved=round(totalreserved/1024/1024/1024,2)</query>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -261,18 +184,13 @@ eval totalreserved=round(totalreserved/1024/1024/1024,2)
   <row>
     <panel>
       <table>
-        <title>Avg Used Space host and partition</title>
+        <title>Average Space Used by Host and Partition</title>
         <search>
-          <query>
-            <![CDATA[	  
-`collectd_index` $hostmultiselect$ $envmultiselect$ metric="df_complex-used" object="$partition$" |
-stats avg(value) AS bytes by host object |
-sort -bytes |
-eval UsedMem = `format_bytes_new(bytes)` |
-eval Partition=replace(object,"df-","/") |
-table host Partition UsedMem
-]]>
-          </query>
+          <query>`collectd_index` $hostmultiselect$ $envmultiselect$ metric="df_complex-used" object="$partition$" 
+| stats avg(value) AS bytes BY host object 
+| sort -bytes 
+| eval UsedMem = `format_bytes_new(bytes)`, Partition=replace(object,"df-","/") 
+| table host Partition UsedMem</query>
         </search>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>
@@ -285,26 +203,12 @@ table host Partition UsedMem
       <table>
         <title>fullest volumes in pct</title>
         <search>
-          <query>
-            <![CDATA[	  
-`collectd_index` $hostmultiselect$ $envmultiselect$  object="df-*" (df_complex_free=* OR df_complex_used=* OR df_complex_reserved=*) object="$partition$"  |
-stats latest(df_complex_free) as free latest(df_complex_used) as used latest(df_complex_reserved) as reserved by host object |
-eval full=free+used | 
-eval percentused = (used/full)*100 |
-sort -percentused |
-eval percentused = round(percentused) | 
-eval pct = tostring(percentused . "%") | 
-eval delta=`format_bytes_new(delta)` |
-eval full =`format_bytes_new(full )` | 
-eval used =`format_bytes_new(used )` | 
-eval free=`format_bytes_new(free)` |  
-eval partition=replace(object,"df-","/") |
-eval partition=replace(partition,"-","/") |
-rename full as size | 
-
-table host partition pct size used free
-]]>
-          </query>
+          <query>`collectd_index` $hostmultiselect$ $envmultiselect$ object="df-*" (df_complex_free=* OR df_complex_used=* OR df_complex_reserved=*) object="$partition$"
+| stats latest(df_complex_free) AS free latest(df_complex_used) AS used latest(df_complex_reserved) AS reserved BY host object 
+| eval full=free+used, percentused = (used/full)*100, percentused = round(percentused), pct = tostring(percentused . "%"), delta=`format_bytes_new(delta)`, full =`format_bytes_new(full )`, used =`format_bytes_new(used )`, free=`format_bytes_new(free)`, partition=replace(object,"df-","/"), partition=replace(partition,"-","/") 
+| rename full AS size 
+| sort -percentused 
+| table host partition pct size used free</query>
         </search>
         <option name="wrap">true</option>
         <option name="rowNumbers">false</option>

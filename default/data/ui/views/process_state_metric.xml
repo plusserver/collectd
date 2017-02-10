@@ -1,38 +1,15 @@
 <form>
   <label>Process State</label>
   <fieldset submitButton="false" autoRun="true">
-    <input type="dropdown" searchWhenChanged="true" token="env">
-      <label>Select Environment:</label>
-      <default>*</default>
-      <populatingSearch earliest="$earliest$" latest="$latest$" fieldForLabel="envdata" fieldForValue="envdata">
-        <![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-	  ]]>
-      </populatingSearch>
-      <choice value="*">all</choice>
-    </input>
     <input type="dropdown" searchWhenChanged="true" token="hostselected">
       <label>Select Host:</label>
-	  <selectfirstchoice>true</selectfirstchoice>
-      <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
-<![CDATA[
-	  | metadata type=hosts `collectd_index` |
-	  search host=*$env$* totalCount>0 | 
-	  dedup "host" | 
-	  sort "host" | 
-	  regex host="^[^\d]" |
-	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
-	  table host hostreplace
-]]>	  
-      </populatingSearch>
+      <search>
+        <query>| metadata type=hosts `collectd_index` 
+| search totalCount&gt;0 
+| stats count BY host</query>
+      </search>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
     </input>
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
@@ -45,20 +22,14 @@
   <row>
     <panel>
       <chart>
-        <title>Processes by state over time for $hostselected$</title>
-        <searchString>
-<![CDATA[		   
-`collectd_index` host="*$env$*" host=$hostselected$  (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=* ) | 
-timechart avg(ps_state_sleeping) as sleeping 
-max(ps_state_running) as running 
-max(ps_state_blocked) as blocked 
-max(ps_state_zombies) as zombies  |
-eval running=round (running) |
-eval sleeping = round (sleeping) |
-eval blocked = round (blocked) | 
-eval zombies = round(zombies)
-]]>
-	</searchString>
+        <title>Average Processes by State over Time</title>
+        <search>
+          <query>`collectd_index` host=$hostselected$ (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=*) 
+| timechart avg(ps_state_sleeping) AS Sleeping max(ps_state_running) AS Running max(ps_state_blocked) AS Blocked max(ps_state_zombies) AS Zombies 
+| eval Running=round(Running), Sleeping=round(Sleeping), Blocked=round(Blocked), Zombies=round(Zombies)</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
         <option name="charting.axisTitleX.visibility">visible</option>
@@ -66,7 +37,7 @@ eval zombies = round(zombies)
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">area</option>
         <option name="charting.chart.bubbleMaximumSize">50</option>
@@ -83,28 +54,19 @@ eval zombies = round(zombies)
       </chart>
     </panel>
   </row>
- 
-   <row>
+  <row>
     <panel>
       <table>
-        <title>Processes by state over time for $hostselected$</title>
-        <searchString>
-<![CDATA[
-`collectd_index` host="*$env$*" host=$hostselected$ (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=* ) | 
-
-timechart max(ps_state_sleeping) as sleeping 
-max(ps_state_running) as running 
-max(ps_state_blocked) as blocked 
-max(ps_state_zombies) as zombies by host |
-eval running=round (running) |
-eval sleeping = round (sleeping) |
-eval blocked = round (blocked) | 
-eval zombies = round(zombies)
-]]>
-</searchString>
-		<option name="drilldown">none</option>
+        <title>Average Processes by State Over Time</title>
+        <search>
+          <query>`collectd_index` host=$hostselected$ (ps_state_sleeping=* OR ps_state_blocked=* OR ps_state_running=* OR ps_state_zombies=*) 
+| timechart max(ps_state_sleeping) AS Sleeping max(ps_state_running) AS Running max(ps_state_blocked) AS Blocked max(ps_state_zombies) AS Zombies BY host 
+| eval Running=round(Running), Sleeping=round(Sleeping), Blocked=round(Blocked), Zombies=round(Zombies)</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
       </table>
     </panel>
   </row>
- 
 </form>

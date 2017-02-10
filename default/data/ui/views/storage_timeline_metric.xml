@@ -1,59 +1,33 @@
 <form>
   <label>Storage Timeline</label>
   <fieldset submitButton="false" autoRun="true">
-    <input type="dropdown" searchWhenChanged="true" token="env">
-      <label>Select Environment:</label>
-      <default>*</default>
-      <populatingSearch earliest="$earliest$" latest="$latest$" fieldForLabel="env" fieldForValue="envdata">
-        <![CDATA[
-| metadata type=hosts `collectd_index` | search totalCount>0 
-| eval host=replace(host,"_",".") | eval fields=split(host,".") | eval stage=mvindex(fields,1)
-| eval environment=mvindex(fields,2)
-| eval env=tostring(environment + "_" + stage)
-| eval envdata=tostring(stage + "." + environment)
-| dedup env
-| sort env 
-| regex env="^[^\d]"
-| table env envdata
-	  ]]>
-      </populatingSearch>
-      <choice value="*">all</choice>
-    </input>
     <input type="dropdown" searchWhenChanged="true" token="hostselected">
       <label>Select Host:</label>
-      <populatingSearch fieldForLabel="hostreplace" fieldForValue="host">
-<![CDATA[
-	  | metadata type=hosts `collectd_index` |
-	  search host=*$env$* totalCount>0 | 
-	  dedup "host" | 
-	  sort "host" | 
-	  regex host="^[^\d]" |
-	  eval hostreplace=replace(host,"_",".") | eval host=replace(host,"_",".") | 
-	  table host hostreplace
-]]>
-      </populatingSearch>
+      <search>
+        <query>| metadata type=hosts `collectd_index` 
+| search totalCount&gt;0 
+| stats count BY host</query>
+      </search>
+      <fieldForLabel>host</fieldForLabel>
+      <fieldForValue>host</fieldForValue>
     </input>
-	
     <input type="dropdown" searchWhenChanged="true" token="partition">
       <label>Select Partition</label>
-      <populatingSearch fieldForLabel="object_new" fieldForValue="object">
-        <![CDATA[
-`collectd_index` object="df-*" (object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run")|
- dedup "object" | 
- eval object_new=replace(object,"df-","/") |
- eval object_new=replace(object_new,"-","/") |
- sort "object_new" | 
- table "object_new" object
-]]>
-      </populatingSearch>
+      <search>
+        <query>`collectd_index` object="df-*" (object!="df-dev" AND object!="df-run-shm" AND object!="df-run-lock" AND object!="df-run-shm" AND object!="df-run") 
+| stats count BY object 
+| eval object_new=replace(object,"df-","/"), object_new=replace(object_new,"-","/") 
+| sort object_new</query>
+      </search>
       <default>*</default>
-      <choice value="*">all</choice>
+      <choice value="*">All Partitions</choice>
+      <fieldForLabel>object_new</fieldForLabel>
+      <fieldForValue>object</fieldForValue>
     </input>
-
     <input type="time" searchWhenChanged="true">
       <label>Select Time:</label>
       <default>
-        <earliest>-30d@d</earliest>
+        <earliest>-24h@h</earliest>
         <latest>now</latest>
       </default>
     </input>
@@ -61,13 +35,11 @@
   <row>
     <panel>
       <chart>
-        <title>Partitions over Time for host $hostselected$</title>
+        <title>Partitions over Time</title>
         <search>
-		<query>
-<![CDATA[
-          `collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ |  eval valueMB=round(( ((value/1024) /1024)) / 1024,3) |  timechart latest(valueMB) by object
-]]>		  
-		  </query>
+          <query>`collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ |  eval valueMB=round(( ((value/1024) /1024)) / 1024,3), object=replace(object,"df-","/"), object=replace(object,"-","/") |  timechart latest(valueMB) BY object useother=f</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
         </search>
         <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
         <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
@@ -76,7 +48,7 @@
         <option name="charting.axisTitleY2.visibility">visible</option>
         <option name="charting.axisX.scale">linear</option>
         <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
+        <option name="charting.axisY2.enabled">0</option>
         <option name="charting.axisY2.scale">inherit</option>
         <option name="charting.chart">area</option>
         <option name="charting.chart.bubbleMaximumSize">50</option>
@@ -96,41 +68,18 @@
   <row>
     <panel>
       <table>
-        <title>Partitions over Time for host $hostselected$</title>
+        <title>Partitions over Time</title>
         <search>
-          <query>
-            <![CDATA[
-`collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ |
-eval valueMB=`format_bytes(value)` | 
-timechart latest(valueMB) by object		  
-]]>
-          </query>
+          <query>`collectd_index` metric="df_complex-used" host=$hostselected$ object=$partition$ 
+| eval valueMB=`format_bytes(value)`, object=replace(object,"df-","/"), object=replace(object,"-","/") 
+| timechart latest(valueMB) BY object useother=f</query>
+          <earliest>$earliest$</earliest>
+          <latest>$latest$</latest>
         </search>
-        <option name="charting.axisLabelsX.majorLabelStyle.overflowMode">ellipsisNone</option>
-        <option name="charting.axisLabelsX.majorLabelStyle.rotation">0</option>
-        <option name="charting.axisTitleX.visibility">visible</option>
-        <option name="charting.axisTitleY.visibility">visible</option>
-        <option name="charting.axisTitleY2.visibility">visible</option>
-        <option name="charting.axisX.scale">linear</option>
-        <option name="charting.axisY.scale">linear</option>
-        <option name="charting.axisY2.enabled">false</option>
-        <option name="charting.axisY2.scale">inherit</option>
-        <option name="charting.chart">area</option>
-        <option name="charting.chart.bubbleMaximumSize">50</option>
-        <option name="charting.chart.bubbleMinimumSize">10</option>
-        <option name="charting.chart.bubbleSizeBy">area</option>
-        <option name="charting.chart.nullValueMode">gaps</option>
-        <option name="charting.chart.sliceCollapsingThreshold">0.01</option>
-        <option name="charting.chart.stackMode">stacked</option>
-        <option name="charting.chart.style">shiny</option>
-        <option name="charting.drilldown">none</option>
-        <option name="charting.layout.splitSeries">0</option>
-        <option name="charting.legend.labelStyle.overflowMode">ellipsisMiddle</option>
-        <option name="charting.legend.placement">right</option>
-        <option name="wrap">true</option>
-        <option name="rowNumbers">false</option>
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
+        <option name="rowNumbers">false</option>
+        <option name="wrap">true</option>
       </table>
     </panel>
   </row>
