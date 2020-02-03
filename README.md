@@ -1,4 +1,4 @@
-## collectd App for Splunk Enterprise by Nexinto ##
+## collectd App for Splunk Enterprise by Plusserver ##
 
 ### Overview ###
 
@@ -131,18 +131,18 @@ This will help you when searching and comparing large amount of hosts.
 
 ### Feedback and Contact ###
 
-If you have Feedback, issues or questions please use issue tracker at Github page: https://github.com/Nexinto/collectd.
+If you have Feedback, issues or questions please use issue tracker at Github page: https://github.com/plusserver/collectd.
  
 For direct Feedback please contact: splunkapps@nexinto.com. 
 
 This app was created by:
  
-Nexinto GmbH
+Plusserver GmbH
 Nagelsweg 33-35
 20097 Hamburg
 
 Telefon: +49 40-77175-0
 Telefax: +49 40-77175-519
 
-E-Mail: ITSolutions@nexinto.com
-Internet: www.nexinto.com
+
+Internet: www.plusserver.com
